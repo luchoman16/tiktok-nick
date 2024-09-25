@@ -6,6 +6,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Usar el puerto asignado por el entorno o el 3000 por defecto
+const PORT = process.env.PORT || 3000;
+
 app.post('/getNickname', async (req, res) => {
     const { profileUrl } = req.body;
 
@@ -16,7 +19,10 @@ app.post('/getNickname', async (req, res) => {
     }
 
     try {
-        const browser = await puppeteer.launch({ headless: true });
+        const browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox'] // Necesario para entornos de producción
+        });
         const page = await browser.newPage();
         await page.goto(profileUrl, { waitUntil: 'networkidle2' });
 
@@ -43,6 +49,7 @@ app.post('/getNickname', async (req, res) => {
     }
 });
 
-app.listen(3000, () => {
-    console.log('Servidor corriendo en http://localhost:3000');
+// Usar el puerto dinámico en producción o 3000 en local
+app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
