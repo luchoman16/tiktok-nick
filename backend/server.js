@@ -3,10 +3,17 @@ const puppeteer = require('puppeteer');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+
+// Configurar CORS para permitir cualquier origen
+app.use(cors({
+    origin: '*', // Permitir solicitudes desde cualquier origen
+    methods: ['GET', 'POST'], // Métodos permitidos
+    allowedHeaders: ['Content-Type'] // Encabezados permitidos
+}));
+
 app.use(express.json());
 
-// Usar el puerto asignado por el entorno o el 3000 por defecto
+// Puerto dinámico para producción o 3000 en local
 const PORT = process.env.PORT || 3000;
 
 app.post('/getNickname', async (req, res) => {
@@ -14,6 +21,7 @@ app.post('/getNickname', async (req, res) => {
 
     console.log('URL recibida:', profileUrl); // Log para depuración
 
+    // Validación básica de URL
     if (!profileUrl || !profileUrl.startsWith('https://www.tiktok.com/@')) {
         return res.status(400).json({ error: 'URL de perfil no válida' });
     }
@@ -21,12 +29,12 @@ app.post('/getNickname', async (req, res) => {
     try {
         const browser = await puppeteer.launch({
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'] // Necesario para entornos de producción
+            args: ['--no-sandbox', '--disable-setuid-sandbox'] // Configuración necesaria para entornos de producción
         });
         const page = await browser.newPage();
         await page.goto(profileUrl, { waitUntil: 'networkidle2' });
 
-        // Usando el nuevo selector
+        // Usando el selector correcto para obtener el apodo
         const nickname = await page.evaluate(() => {
             const element = document.querySelector('h2[data-e2e="user-subtitle"]');
             return element ? element.innerText : null;
@@ -40,6 +48,7 @@ app.post('/getNickname', async (req, res) => {
             return res.status(500).json({ error: 'No se pudo obtener el apodo del perfil' });
         }
 
+        // Verifica si el apodo contiene el emoji 🥃
         const hasEmoji = nickname.includes('🥃');
         res.json({ nickname, whatsappLink: hasEmoji ? 'https://chat.whatsapp.com/BOxxs1cigCqFORZkQf2au0' : null });
 
@@ -49,7 +58,7 @@ app.post('/getNickname', async (req, res) => {
     }
 });
 
-// Usar el puerto dinámico en producción o 3000 en local
+// Iniciar el servidor en el puerto dinámico o en el 3000
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
